@@ -85,7 +85,7 @@ tartype_t;
 typedef struct
 {
 	tartype_t *type;
-	char *pathname;
+	const char *pathname;
 	long fd;
 	int oflags;
 	int options;
@@ -103,6 +103,7 @@ TAR;
 #define TAR_CHECK_VERSION	32	/* check version in file header */
 #define TAR_IGNORE_CRC		64	/* ignore CRC in file header */
 #define TAR_STORE_SELINUX	128	/* store selinux context */
+#define TAR_USE_NUMERIC_ID  256 /* favor numeric owner over names: --numeric-owner */
 
 /* this is obsolete - it's here for backwards-compatibility only */
 #define TAR_IGNORE_MAGIC	0
@@ -111,11 +112,11 @@ extern const char libtar_version[];
 
 
 /* open a new tarfile handle */
-int tar_open(TAR **t, char *pathname, tartype_t *type,
+int tar_open(TAR **t, const char *pathname, tartype_t *type,
 	     int oflags, int mode, int options);
 
 /* make a tarfile handle out of a previously-opened descriptor */
-int tar_fdopen(TAR **t, int fd, char *pathname, tartype_t *type,
+int tar_fdopen(TAR **t, int fd, const char *pathname, tartype_t *type,
 	       int oflags, int mode, int options);
 
 /* returns the descriptor associated with t */
@@ -139,13 +140,13 @@ void tar_dev_free(struct tar_dev *tdp);
  *    realname = path of file to append
  *    savename = name to save the file under in the archive
  */
-int tar_append_file(TAR *t, char *realname, char *savename);
+int tar_append_file(TAR *t, const char *realname, const char *savename);
 
 /* write EOF indicator */
 int tar_append_eof(TAR *t);
 
 /* add file contents to a tarchive */
-int tar_append_regfile(TAR *t, char *realname);
+int tar_append_regfile(TAR *t, const char *realname);
 
 
 /***** block.c *************************************************************/
@@ -179,8 +180,8 @@ int th_write(TAR *t);
 #define TH_ISDIR(t)	((t)->th_buf.typeflag == DIRTYPE \
 			 || S_ISDIR((mode_t)oct_to_int((t)->th_buf.mode)) \
 			 || ((t)->th_buf.typeflag == AREGTYPE \
-			     && strlen((t)->th_buf.name) \
-			     && ((t)->th_buf.name[strlen((t)->th_buf.name) - 1] == '/')))
+			     && strnlen((t)->th_buf.name, T_NAMELEN) \
+			     && ((t)->th_buf.name[strnlen((t)->th_buf.name, T_NAMELEN) - 1] == '/')))
 #define TH_ISFIFO(t)	((t)->th_buf.typeflag == FIFOTYPE \
 			 || S_ISFIFO((mode_t)oct_to_int((t)->th_buf.mode)))
 #define TH_ISLONGNAME(t)	((t)->th_buf.typeflag == GNU_LONGNAME_TYPE)
@@ -206,8 +207,8 @@ gid_t th_get_gid(TAR *t);
 
 /* encode file info in th_header */
 void th_set_type(TAR *t, mode_t mode);
-void th_set_path(TAR *t, char *pathname);
-void th_set_link(TAR *t, char *linkname);
+void th_set_path(TAR *t, const char *pathname);
+void th_set_link(TAR *t, const char *linkname);
 void th_set_device(TAR *t, dev_t device);
 void th_set_user(TAR *t, uid_t uid);
 void th_set_group(TAR *t, gid_t gid);
@@ -227,18 +228,18 @@ void th_finish(TAR *t);
 /***** extract.c ***********************************************************/
 
 /* sequentially extract next file from t */
-int tar_extract_file(TAR *t, char *realname);
+int tar_extract_file(TAR *t, const char *realname);
 
 /* extract different file types */
-int tar_extract_dir(TAR *t, char *realname);
-int tar_extract_hardlink(TAR *t, char *realname);
-int tar_extract_symlink(TAR *t, char *realname);
-int tar_extract_chardev(TAR *t, char *realname);
-int tar_extract_blockdev(TAR *t, char *realname);
-int tar_extract_fifo(TAR *t, char *realname);
+int tar_extract_dir(TAR *t, const char *realname);
+int tar_extract_hardlink(TAR *t, const char *realname);
+int tar_extract_symlink(TAR *t, const char *realname);
+int tar_extract_chardev(TAR *t, const char *realname);
+int tar_extract_blockdev(TAR *t, const char *realname);
+int tar_extract_fifo(TAR *t, const char *realname);
 
 /* for regfiles, we need to extract the content blocks as well */
-int tar_extract_regfile(TAR *t, char *realname);
+int tar_extract_regfile(TAR *t, const char *realname);
 int tar_skip_regfile(TAR *t);
 
 

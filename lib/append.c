@@ -59,7 +59,7 @@ tar_dev_free(tar_dev_t *tdp)
 
 /* appends a file to the tar archive */
 int
-tar_append_file(TAR *t, char *realname, char *savename)
+tar_append_file(TAR *t, const char *realname, const char *savename)
 {
 	struct stat s;
 	int i;
@@ -106,16 +106,15 @@ tar_append_file(TAR *t, char *realname, char *savename)
 		}
 
 		security_context_t selinux_context = NULL;
-		if(getfilecon(realname, &selinux_context) >= 0)
+		if(lgetfilecon(realname, &selinux_context) >= 0)
 		{
 			t->th_buf.selinux_context = strdup(selinux_context);
+			// printf("setting selinux context: %s\n", selinux_context);
 			freecon(selinux_context);
 		}
 		else
 		{
-#ifdef DEBUG
 			perror("Failed to get selinux context");
-#endif
 		}
 	}
 #endif
@@ -187,9 +186,12 @@ tar_append_file(TAR *t, char *realname, char *savename)
 	}
 
 	/* print file info */
-	if (t->options & TAR_VERBOSE)
+	if (t->options & TAR_VERBOSE) {
 		//th_print_long_ls(t);
-		printf("%s\n", th_get_pathname(t));
+        char *f = th_get_pathname(t);
+        printf("%s\n", f);
+        free(f);
+    }
 
 
 #ifdef DEBUG
@@ -240,7 +242,7 @@ tar_append_eof(TAR *t)
 
 /* add file contents to a tarchive */
 int
-tar_append_regfile(TAR *t, char *realname)
+tar_append_regfile(TAR *t, const char *realname)
 {
 	char block[T_BLOCKSIZE];
 	int filefd;
